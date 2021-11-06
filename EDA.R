@@ -14,21 +14,6 @@ ev_stations$Open.Date <- mdy(ev_stations$Open.Date)
 
 head(ev_stations)
 
-
-labs <- lapply(seq(nrow(ev_stations)), function(i) {
-  paste(sep = ' ', ev_stations[i, "Station.Name"],
-          ev_stations[i, "Street.Address"],
-          ev_stations[i, "City"],
-          ev_stations[i, "ZIP"]) 
-})
-
-ev_map <- leaflet(data = ev_stations) %>% 
-  addTiles() %>% 
-  addMarkers(lng = ev_stations$Longitude, 
-             lat = ev_stations$Latitude, 
-             popup = ~htmlEscape(lapply(labs, htmltools::HTML)), 
-             clusterOptions = markerClusterOptions())
-
 ev_stations_leveled <- ev_stations %>% 
   group_by(State) %>%
   summarise(Level_1 = sum(EV.Level1.EVSE.Num,na.rm = T), 
@@ -49,20 +34,25 @@ ev_station_state <- ev_stations %>%
 
 ev_stations_vehicles <- left_join(ev_station_state, ev_registration) %>% 
   rename(Registered_Vehicles =`Registration Count`) %>%
-  mutate(Vehicles_Per_Station = Registered_Vehicles/Stations)
+  mutate(Vehicles_Per_Station = Registered_Vehicles/Stations) %>%
+  arrange(State) %>%
+  add_row(Abbrev='PR', Stations=26,State='Puerto Rico',Registered_Vehicles=1051,Vehicles_Per_Station=1051/26)
 
-labels <- sprintf("<strong>%s</strong><br/>%g cars/station",
-                  states$name, ev_stations_vehicles$Vehicles_Per_Station) %>% lapply(htmltools::HTML)
+labs_1 <- sprintf("<strong>%s</strong><br/>%s<br/>%s, %s", 
+                  ev_stations$Station.Name, 
+                  ev_stations$Street.Address, 
+                  ev_stations$City, ev_stations$ZIP) %>% 
+  lapply(htmltools::HTML)
+
+lab_2 <- sprintf("<strong>%s</strong><br/>%1.0f cars/station",
+                  ev_stations_vehicles$State, ev_stations_vehicles$Vehicles_Per_Station) %>% 
+  lapply(htmltools::HTML)
+
 bins <- c(0,10,20,30,40,50,60,Inf)
 pal <- colorBin("YlOrRd", domain = ev_stations_vehicles$Vehicles_Per_Station, bins = bins)
 
-states$name
-ev_stations_vehicles$State
-
-leaflet(states) %>%
-  addProviderTiles("MapBox", options = providerTileOptions(
-    id = "mapbox.light",
-    accessToken = Sys.getenv('MAPBOX_ACCESS_TOKEN'))) %>%
+map_2 <- leaflet(states) %>%
+  addTiles() %>%
   addPolygons(
     fillColor = ~pal(ev_stations_vehicles$Vehicles_Per_Station),
     weight = 2,
@@ -76,27 +66,29 @@ leaflet(states) %>%
       dashArray = "",
       fillOpacity = 0.7,
       bringToFront = TRUE),
-    label = labels,
+    group = "Polygons",
+    label = lab_2,
     labelOptions = labelOptions(
-      style = list("font-weight" = "normal", padding = "3px 8px"),
+      style = list("font-weight" = "normal", 
+                   padding = "3px 8px"),
       textsize = "15px",
       direction = 'auto')) %>%
   addLegend(pal = pal, values = ~ev_stations_vehicles$Vehicles_Per_Station, opacity = 0.7, title = NULL,
-            position = 'bottomright')
+            position = 'bottomright') %>%
+  addMarkers(lng = ev_stations$Longitude, 
+             lat = ev_stations$Latitude, 
+             label = labs_2,
+             labelOptions = labelOptions(
+               style = list('font-weight'= 'normal',
+                            padding="3px 8px"),
+               textsize = '15px',
+               direction = 'auto'
+             ),
+             clusterOptions = markerClusterOptions()) %>%
+  groupOptions('Polygons', zoomLevels = 5:0)
+map_2
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+ev_stations_leveled
 
 
