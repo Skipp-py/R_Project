@@ -1,1 +1,2 @@
 # R_Project
+This project is an analysis of the current electric vehicle market. It assesses the growth in consumer demands of electric vehicles in relation the the stations that are currently in place to support that demand. The data utilized in the analysis was from the US Department of Energy. Preliminary findings are based on the number of registered electric vehicles and the dispursement of chargining stations. A visual analysis represented in a slidedeck can be found at (https://www.beautiful.ai/player/-Mo-y2GAutmmkTkkBy25). 
