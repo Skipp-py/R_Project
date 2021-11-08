@@ -28,6 +28,7 @@ ev_station_state <- ev_stations %>%
   group_by(State) %>% 
   select(Abbrev = State) %>%
   summarise(Stations = n())
+ev_station_state
 
 # Joining Station Data with Registration Data
 ev_stations_vehicles <- left_join(ev_station_state, ev_registration) %>% 
@@ -35,21 +36,38 @@ ev_stations_vehicles <- left_join(ev_station_state, ev_registration) %>%
   mutate(Vehicles_Per_Station = Registered_Vehicles/Stations) %>%
   arrange(State) %>%
   add_row(Abbrev='PR', Stations=26,State='Puerto Rico',Registered_Vehicles=1051,Vehicles_Per_Station=1051/26)
+ev_stations_vehicles
+
+# Count of stations and registered vehicles
+stations_vs_registration <- ev_stations_vehicles %>% 
+  select(Stations, Registered_Vehicles) %>% 
+  colSums()
+stations_vs_registration
 
 # Pivoting Data to EV Station Levels (charging pumps) by State
 ev_station_levels <- ev_stations %>% 
   group_by(State) %>%
   summarise(Level_1 = sum(EV.Level1.EVSE.Num,na.rm = T), 
             Level_2 = sum(EV.Level2.EVSE.Num,na.rm = T), 
-            Level_3 = sum(EV.DC.Fast.Count,na.rm = T)) %>%
+            Level_3 = sum(EV.DC.Fast.Count,na.rm = T)) 
+
+# Analyzing number of pumps by level 
+pumps_by_level <- ev_station_levels %>% 
+  select(c(Level_1,Level_2,Level_3)) %>%
+  colSums()
+pumps_by_level
+
+# Analyzing number of pumps by state 
+pumps_by_state <- ev_station_levels %>%
   pivot_longer(cols = Level_1:Level_3,
                names_to = "Level",
                values_to = "Count") 
+pumps_by_state 
 
 ## Graphing the Data
 
 # Creating Bar Chart of EV Pump Levels by State
-station_levels_col <- ev_station_levels %>% 
+station_levels_col <- pumps_by_state %>% 
   ggplot(aes(x=reorder(State,-Count), y=Count, fill=Level)) + 
   geom_col() +
   labs(title="Charging Stations by State", x="State", y="Count")
